@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:viesauve_app/logins/login.dart';
 import 'package:viesauve_app/mespages/settings.dart';
 import '../const.dart' as AppConstants;
 
@@ -142,6 +141,7 @@ class _SignInPageState extends State<SignInPage> {
               const SizedBox(height: 8),
               TextField(
                 controller: txtnoms,
+                style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey[200],
@@ -157,6 +157,7 @@ class _SignInPageState extends State<SignInPage> {
               TextField(
                 controller: txtmotdepasse,
                 obscureText: _obscurePassword,
+                style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey[200],
@@ -190,29 +191,6 @@ class _SignInPageState extends State<SignInPage> {
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                   ),
                   child: const Text('Login'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: Row(
-                  children: [
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text("Si vous n'avez pas de compte, "),
-                    ),
-                    SizedBox(width: 10),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MultiStepForm(),
-                          ),
-                        );
-                      },
-                      child: Text('créez-en un ici.'),
-                    ),
-                  ],
                 ),
               ),
             ],

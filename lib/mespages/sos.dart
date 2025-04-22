@@ -28,6 +28,7 @@ class _SOSPageState extends State<SOSPage> {
     "Besoin d'une assistance immédiate",
   ];
   String? id_user;
+  String? secteur_id;
   double? latitude;
   double? longitude;
 
@@ -41,6 +42,7 @@ class _SOSPageState extends State<SOSPage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       id_user = prefs.getString('id_user');
+      secteur_id = prefs.getString('secteur_id');
     });
   }
 
@@ -89,6 +91,26 @@ class _SOSPageState extends State<SOSPage> {
     });
   }
 
+  Future<void> showMessageDialog(String title, String message) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _sendData(String servicetype) async {
     setState(() {
       isLoading = true;
@@ -103,59 +125,24 @@ class _SOSPageState extends State<SOSPage> {
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({
             'user_id': id_user!,
+            'secteur_id': secteur_id!,
             'messages': selectedAlertText,
             'latitude': latitude.toString(),
             'longitude': longitude.toString(),
             'serviceType': servicetype,
-            'etat': 'nouvelle', // État initial
+            'etat': 'nouvelle',
           }),
         );
 
         if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: const [
-                  Icon(Icons.check, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Demande soumise avec succès'),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 10),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          await showMessageDialog("Succès", "✅ Demande soumise avec succès");
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: const [
-                  Icon(Icons.error, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Échec de l\'envoi des données'),
-                ],
-              ),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 5),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          await showMessageDialog("Erreur", "❌ Échec de l'envoi des données");
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Erreur: $e'),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-          ),
+        await showMessageDialog(
+          "Exception",
+          "❗ Une erreur s'est produite : $e",
         );
       } finally {
         setState(() {
@@ -163,19 +150,9 @@ class _SOSPageState extends State<SOSPage> {
         });
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.warning, color: Colors.white),
-              SizedBox(width: 16),
-              Text('Données utilisateur ou localisation manquantes'),
-            ],
-          ),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 5),
-          behavior: SnackBarBehavior.floating,
-        ),
+      await showMessageDialog(
+        "Données manquantes",
+        "⚠️ Données utilisateur ou localisation manquantes",
       );
       setState(() {
         isLoading = false;
@@ -328,11 +305,7 @@ class SOSButton extends StatelessWidget {
         const SizedBox(height: 5),
         Text(
           text,
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           textAlign: TextAlign.center,
         ),
       ],

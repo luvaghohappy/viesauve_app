@@ -52,72 +52,6 @@ class _MainPageState extends State<MainPage> {
                 'VIE_SAUVE',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              //   trailing: PopupMenuButton<int>(
-              //     icon: const Icon(
-              //       Icons.menu,
-              //       color: Colors.black,
-              //     ),
-              //     onSelected: (value) {
-              //       switch (value) {
-              //         case 0:
-              //           Navigator.push(
-              //             context,
-              //             MaterialPageRoute(
-              //               builder: (context) => const Settings(),
-              //             ),
-              //           );
-              //           break;
-              //         case 1:
-              //           Navigator.push(
-              //             context,
-              //             MaterialPageRoute(
-              //               builder: (context) => const Guides(),
-              //             ),
-              //           );
-              //           break;
-              //         case 2:
-              //           Navigator.push(
-              //             context,
-              //             MaterialPageRoute(
-              //               builder: (context) => const Apropos(),
-              //             ),
-              //           );
-              //           break;
-              //       }
-              //     },
-              //     itemBuilder: (BuildContext context) => <PopupMenuEntry<int>>[
-              //       PopupMenuItem<int>(
-              //         value: 0,
-              //         child: Row(
-              //           children: const [
-              //             Icon(Icons.settings, size: 15, color: Colors.black),
-              //             SizedBox(width: 8),
-              //             Text('Paramètres'),
-              //           ],
-              //         ),
-              //       ),
-              //       PopupMenuItem<int>(
-              //         value: 1,
-              //         child: Row(
-              //           children: const [
-              //             Icon(Icons.book, size: 15, color: Colors.black),
-              //             SizedBox(width: 8),
-              //             Text('Guide'),
-              //           ],
-              //         ),
-              //       ),
-              //       PopupMenuItem<int>(
-              //         value: 2,
-              //         child: Row(
-              //           children: const [
-              //             Icon(Icons.info, size: 15, color: Colors.black),
-              //             SizedBox(width: 8),
-              //             Text('À propos'),
-              //           ],
-              //         ),
-              //       ),
-              //     ],
-              //   ),
             ),
             const Padding(padding: EdgeInsets.only(top: 30)),
             Padding(
@@ -152,7 +86,7 @@ class _MainPageState extends State<MainPage> {
                             Container(
                               width: 300,
                               child: Text(
-                                "Les ambulanciers sont responsables de l'évaluation, de la stabilisation et du transport des patients vers des établissements médicaux. Ils fournissent des soins vitaux, comme la réanimation, le traitement des traumatismes, et l'administration de médicaments.",
+                                "Les ambulanciers sont responsables de l'évaluation, de la stabilisation et du transport des patients vers des établissements médicaux. Ils fournissent des soins vitaux, comme la réanimation, le traitement des traumatismes, et l'administration de médicaments. Numero d'urgence 11",
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.abel(),
                               ),
@@ -177,7 +111,7 @@ class _MainPageState extends State<MainPage> {
                             Container(
                               width: 300,
                               child: Text(
-                                "Les policiers sécurisent les lieux d'une urgence pour prévenir le chaos, les émeutes ou les situations de panique. Ils contrôlent également la circulation pour permettre aux services d'urgence d'accéder rapidement au site.",
+                                "Les policiers sécurisent les lieux d'une urgence pour prévenir le chaos, les émeutes ou les situations de panique. Ils contrôlent également la circulation pour permettre aux services d'urgence d'accéder rapidement au site. Numero d'urgence 90",
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.abel(),
                               ),
@@ -202,7 +136,7 @@ class _MainPageState extends State<MainPage> {
                             Container(
                               width: 300,
                               child: Text(
-                                'Ils effectuent des opérations de sauvetage, notamment en extrayant des personnes coincées dans des véhicules accidentés, des bâtiments effondrés, ou lors de situations de noyade.',
+                                "Ils effectuent des opérations de sauvetage, notamment en extrayant des personnes coincées dans des véhicules accidentés, des bâtiments effondrés, ou lors de situations de noyade. Numero d'urgence 112",
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.abel(),
                               ),

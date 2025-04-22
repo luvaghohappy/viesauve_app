@@ -17,11 +17,33 @@ class _MultiStepFormState extends State<MultiStepForm> {
   TextEditingController dateNaissanceController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmPasswordController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+
+  List<Map<String, dynamic>> secteurs = [];
 
   int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
   final ImagePicker picker = ImagePicker();
   File? _imageFile;
+  bool _isPasswordValid = true;
+  bool _isPasswordMatch = true;
+
+  void _validatePassword() {
+    setState(() {
+      if (passwordController.text.length < 8) {
+        _isPasswordValid = false;
+      } else {
+        _isPasswordValid = true;
+      }
+
+      if (passwordController.text != confirmPasswordController.text) {
+        _isPasswordMatch = false;
+      } else {
+        _isPasswordMatch = true;
+      }
+    });
+  }
 
   Future<void> getImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -41,8 +63,11 @@ class _MultiStepFormState extends State<MultiStepForm> {
   }
 
   // Champs de formulaire
-  String? nom, prenom, adresse, telephone, email, etatCivil;
+  bool _obscurePassword = true;
+  bool _obscureTextConf = true;
+  String? nom, prenom, adresse, etatCivil;
   String? sexe;
+  String? selectedSecteurId;
   String? groupeSanguin, allergies, maladies, medicaments;
   bool estMarie = false;
   List<Map<String, String>> enfants = [];
@@ -71,6 +96,54 @@ class _MultiStepFormState extends State<MultiStepForm> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    fetchSecteurs();
+  }
+
+  Future<void> fetchSecteurs() async {
+    try {
+      final response = await http.get(
+        Uri.parse("${AppConstants.baseUrl}getsecteur.php"),
+      );
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          secteurs =
+              data.map<Map<String, dynamic>>((item) {
+                return {
+                  'id_secteur': item['id_secteur'].toString(),
+                  'nom_secteur': item['nom_secteur'],
+                };
+              }).toList();
+        });
+      }
+    } catch (e) {
+      print("Erreur chargement secteurs: $e");
+    }
+  }
+
+  Future<void> showMessageDialog(String title, String message) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> insertData() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -84,9 +157,10 @@ class _MultiStepFormState extends State<MultiStepForm> {
       "noms": nom ?? '',
       "sexe": sexe ?? '',
       "date_naissance": dateNaissanceController.text.trim(),
+      "secteur_id": selectedSecteurId ?? '',
       "adresse": adresse ?? '',
-      "telephone": telephone ?? '',
-      "email": email ?? '',
+      "telephone": phoneController.text.trim(),
+      "email": emailController.text.trim(),
       "etat_civil": etatCivil ?? '',
       "groupe_sanguin": groupeSanguin ?? '',
       "allergies": allergies ?? '',
@@ -97,11 +171,9 @@ class _MultiStepFormState extends State<MultiStepForm> {
       "contact_urgence_tel": contactUrgenceTel ?? '',
       "mot_de_passe": passwordController.text.trim(),
       "conf_passe": confirmPasswordController.text.trim(),
-      // Ajouter la liste des enfants (si existante) en JSON
       "enfants": jsonEncode(enfants),
     });
 
-    // Ajout de l'image si elle existe
     if (_imageFile != null) {
       request.files.add(
         await http.MultipartFile.fromPath('image', _imageFile!.path),
@@ -121,9 +193,10 @@ class _MultiStepFormState extends State<MultiStepForm> {
 
           if (jsonResponse["success"] == true) {
             String idUser = jsonResponse["id_user"].toString();
+            String secteurId = jsonResponse["secteur_id"].toString();
 
-            // Enregistrer dans SharedPreferences
             await prefs.setString("id_user", idUser);
+            await prefs.setString("secteur_id", secteurId);
             await prefs.setString("noms", nom ?? '');
             await prefs.setString("sexe", sexe ?? '');
             await prefs.setString(
@@ -132,20 +205,19 @@ class _MultiStepFormState extends State<MultiStepForm> {
             );
             await prefs.setString("groupe_sanguin", groupeSanguin ?? '');
 
-            // 🔹 Affichage d'un message de succès
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Données enregistrées avec succès!"),
-              ),
+            // 🔹 Afficher un dialogue de succès
+            await showMessageDialog(
+              "Succès",
+              "Données enregistrées avec succès!",
             );
 
-            // Nettoyage des champs après insertion
+            // Nettoyage des champs
             nom = "";
             sexe = "";
             dateNaissanceController.clear();
             adresse = "";
-            telephone = "";
-            email = "";
+            phoneController.clear();
+            emailController.clear();
             etatCivil = "";
             groupeSanguin = "";
             allergies = "";
@@ -161,26 +233,24 @@ class _MultiStepFormState extends State<MultiStepForm> {
 
             setState(() {});
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Erreur : ${jsonResponse["error"]}")),
+            await showMessageDialog(
+              "Erreur",
+              "Erreur : ${jsonResponse["error"]}",
             );
           }
         } catch (e) {
           print("Erreur lors du décodage JSON : $e");
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Erreur serveur : réponse invalide.")),
+          await showMessageDialog(
+            "Erreur",
+            "Erreur serveur : réponse invalide.",
           );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Erreur lors de l'enregistrement.")),
-        );
+        await showMessageDialog("Erreur", "Erreur lors de l'enregistrement.");
       }
     } catch (e) {
       print("Erreur lors de l'envoi de la requête : $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Exception : $e")));
+      await showMessageDialog("Exception", "Exception : $e");
     }
   }
 
@@ -250,14 +320,72 @@ class _MultiStepFormState extends State<MultiStepForm> {
               },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: DropdownButtonFormField<String>(
+              value: selectedSecteurId,
+              decoration: InputDecoration(
+                labelText: "Votre Secteur",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              items:
+                  secteurs.map((secteur) {
+                    return DropdownMenuItem<String>(
+                      value: secteur['id_secteur'].toString(),
+                      child: Text(secteur['nom_secteur']),
+                    );
+                  }).toList(),
 
-          _buildTextField("Adresse", (value) => adresse = value, Icons.home),
-          _buildTextField(
-            "Téléphone",
-            (value) => telephone = value,
-            Icons.phone,
+              onChanged: (value) {
+                setState(() => selectedSecteurId = value);
+              },
+            ),
           ),
-          _buildTextField("Email", (value) => email = value, Icons.email),
+          _buildTextField(
+            "Adresse Complète",
+            (value) => adresse = value,
+            Icons.home,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: TextFormField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                labelText: 'Numero Telephone',
+                prefixIcon: Icon(Icons.phone, size: 15),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: TextFormField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email, size: 15),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez entrer votre email';
+                } else if (!RegExp(
+                  r'^[\w-]+@([\w-]+\.)+[\w-]{2,4}$',
+                ).hasMatch(value)) {
+                  return 'Veuillez entrer un email valide';
+                }
+                return null;
+              },
+            ),
+          ),
         ],
       ),
       isActive: _currentStep >= 0,
@@ -305,135 +433,128 @@ class _MultiStepFormState extends State<MultiStepForm> {
       title: const Text("Enfants"),
       content: Column(
         children: [
-          if (etatCivil == "Marié(e)")
-            Column(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      enfants.add({
-                        "noms": "",
-                        "date_naissance": "",
-                        "sexe": "",
-                      });
-                    });
-                  },
-                  child: const Text("Ajouter un enfant"),
-                ),
-                Column(
-                  children:
-                      enfants.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        Map<String, dynamic> enfant = entry.value;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Enfant ${index + 1}",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 5),
-                              Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: TextFormField(
-                                  decoration: InputDecoration(
-                                    labelText: "Noms de l'enfant",
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                    ),
+          Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    enfants.add({"noms": "", "date_naissance": "", "sexe": ""});
+                  });
+                },
+                child: const Text("Ajouter un enfant"),
+              ),
+              Column(
+                children:
+                    enfants.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      Map<String, dynamic> enfant = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Enfant ${index + 1}",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 5),
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: TextFormField(
+                                decoration: InputDecoration(
+                                  labelText: "Noms de l'enfant",
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10.0),
                                   ),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      enfant["noms"] = value;
-                                    });
-                                  },
                                 ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    enfant["noms"] = value;
+                                  });
+                                },
                               ),
+                            ),
 
-                              Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: TextFormField(
-                                  controller: TextEditingController(
-                                    text: enfant["date_naissance"],
-                                  ),
-                                  decoration: InputDecoration(
-                                    labelText: 'Date de naissance',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                    ),
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.calendar_today),
-                                      onPressed: () async {
-                                        DateTime? pickedDate =
-                                            await showDatePicker(
-                                              context: context,
-                                              initialDate: DateTime.now(),
-                                              firstDate: DateTime(1900),
-                                              lastDate: DateTime.now(),
-                                            );
-                                        if (pickedDate != null) {
-                                          String formattedDate = DateFormat(
-                                            'yyyy-MM-dd',
-                                          ).format(pickedDate);
-                                          setState(() {
-                                            enfant["date_naissance"] =
-                                                formattedDate;
-                                          });
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Veuillez entrer la date de naissance';
-                                    }
-                                    return null;
-                                  },
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: TextFormField(
+                                controller: TextEditingController(
+                                  text: enfant["date_naissance"],
                                 ),
+                                decoration: InputDecoration(
+                                  labelText: 'Date de naissance',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10.0),
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.calendar_today),
+                                    onPressed: () async {
+                                      DateTime? pickedDate =
+                                          await showDatePicker(
+                                            context: context,
+                                            initialDate: DateTime.now(),
+                                            firstDate: DateTime(1900),
+                                            lastDate: DateTime.now(),
+                                          );
+                                      if (pickedDate != null) {
+                                        String formattedDate = DateFormat(
+                                          'yyyy-MM-dd',
+                                        ).format(pickedDate);
+                                        setState(() {
+                                          enfant["date_naissance"] =
+                                              formattedDate;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Veuillez entrer la date de naissance';
+                                  }
+                                  return null;
+                                },
                               ),
+                            ),
 
-                              Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: DropdownButtonFormField<String>(
-                                  decoration: InputDecoration(
-                                    labelText: "Sexe",
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                    ),
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: DropdownButtonFormField<String>(
+                                decoration: InputDecoration(
+                                  labelText: "Sexe",
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10.0),
                                   ),
-                                  value:
-                                      enfant["sexe"].isNotEmpty
-                                          ? enfant["sexe"]
-                                          : null,
-                                  items: const [
-                                    DropdownMenuItem(
-                                      value: "M",
-                                      child: Text("Masculin"),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: "F",
-                                      child: Text("Féminin"),
-                                    ),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      enfant["sexe"] = value!;
-                                    });
-                                  },
                                 ),
+                                value:
+                                    enfant["sexe"].isNotEmpty
+                                        ? enfant["sexe"]
+                                        : null,
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: "M",
+                                    child: Text("Masculin"),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: "F",
+                                    child: Text("Féminin"),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    enfant["sexe"] = value!;
+                                  });
+                                },
                               ),
-                              const SizedBox(height: 10),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                ),
-              ],
-            )
-          else
-            const Text("Aucun enfant à déclarer"),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+              ),
+            ],
+          ),
         ],
       ),
       isActive: _currentStep >= 2,
@@ -475,12 +596,23 @@ class _MultiStepFormState extends State<MultiStepForm> {
             padding: const EdgeInsets.all(10.0),
             child: TextFormField(
               controller: passwordController,
-              obscureText: true,
+              obscureText: _obscurePassword,
               decoration: InputDecoration(
-                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                labelText: 'Mot de passe',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   ),
-                labelText: 'Mot de passe'),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+              ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Veuillez entrer un mot de passe';
@@ -493,20 +625,35 @@ class _MultiStepFormState extends State<MultiStepForm> {
             padding: const EdgeInsets.all(10.0),
             child: TextFormField(
               controller: confirmPasswordController,
-              obscureText: true,
+              obscureText: _obscurePassword,
               decoration: InputDecoration(
-                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                labelText: 'Confirmer le mot de passe',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordMatch ? Icons.check : Icons.close,
+                    color: _isPasswordMatch ? Colors.green : Colors.red,
                   ),
-                labelText: 'Confirmer le mot de passe'),
+                  onPressed: () {
+                    setState(() {
+                      _obscureTextConf = !_obscureTextConf;
+                    });
+                  },
+                ),
+              ),
+
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Veuillez confirmer votre mot de passe';
-                }
-                if (value != passwordController.text) {
+                } else if (value != passwordController.text) {
                   return 'Les mots de passe ne correspondent pas';
                 }
                 return null;
+              },
+              onChanged: (value) {
+                _validatePassword();
               },
             ),
           ),
@@ -542,7 +689,7 @@ class _MultiStepFormState extends State<MultiStepForm> {
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-          prefixIcon: Icon(icon),
+          prefixIcon: Icon(icon, size: 15),
         ),
         obscureText: obscureText,
         onChanged: onChanged,

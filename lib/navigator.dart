@@ -4,7 +4,6 @@ import 'package:viesauve_app/mespages/sos.dart';
 import 'mespages/position.dart';
 import 'mespages/settings.dart';
 
-
 class NavigationPage extends StatefulWidget {
  final bool isDarkMode;
   final Function(bool) onToggleTheme;
