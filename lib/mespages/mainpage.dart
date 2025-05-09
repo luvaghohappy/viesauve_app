@@ -46,7 +46,7 @@ class _MainPageState extends State<MainPage> {
             ListTile(
               leading: const CircleAvatar(
                 radius: 25,
-                backgroundImage: AssetImage('assets/logo.jpg'),
+                backgroundImage: AssetImage('assets/viesauve.jpg'),
               ),
               title: const Text(
                 'VIE_SAUVE',
